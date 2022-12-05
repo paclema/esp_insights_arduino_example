@@ -14,7 +14,7 @@ custom_prog_name = FirmwareNameTest
 custom_prog_version = 1.2.3
 ````
 
-![image](doc/nodes.png)
+![image](./doc/nodes.png)
 
 
 * https://github.com/espressif/esp32-arduino-lib-builder/pull/99
