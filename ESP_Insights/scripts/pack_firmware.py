@@ -174,7 +174,7 @@ def SaveProject(source, target, env):
     create_build_folder()
 
     build_project_build_config(env)
-    copy_bootloader(env)
+    # copy_bootloader(env)  //TODO: findout the way to provide bootloader binary using the newer arduino-esp32 version. NOw only elfs are present
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".bin"))
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".elf"))
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".map"))

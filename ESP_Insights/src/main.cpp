@@ -134,6 +134,39 @@ void show_firmware_description(void){
 
 }
 
+#include <esp32-hal-cpu.h>
+#include <esp_flash.h>
+
+
+void show_flash_info(void){
+
+
+    esp_err_t status;
+    char err_msg[20];
+    
+    esp_flash_t *chip;
+    uint32_t out_id;
+    // if ((status = esp_flash_read_id(&chip, &out_id)) != ESP_OK) log_e("esp_flash_read_id error: %s", esp_err_to_name_r(status, err_msg, sizeof(err_msg)));
+    if ((status = esp_flash_read_id(NULL, &out_id)) != ESP_OK) log_e("esp_flash_read_id error: %s", esp_err_to_name_r(status, err_msg, sizeof(err_msg)));
+    else{
+        log_i("Chip out_id: %d", out_id);
+        // log_i("Chip read mode: %d size: %d id: %d", chip->read_mode, chip->size, chip->chip_id);
+    }
+    
+    esp_flash_t *unique_chip;
+    uint64_t unique_out_id;
+    // if ((status = esp_flash_read_unique_chip_id(&unique_chip, &unique_out_id)) != ESP_OK) log_e("esp_flash_read_id error: %s", esp_err_to_name_r(status, err_msg, sizeof(err_msg)));
+    if ((status = esp_flash_read_unique_chip_id(NULL, &unique_out_id)) != ESP_OK) log_e("esp_flash_read_id error: %s", esp_err_to_name_r(status, err_msg, sizeof(err_msg)));
+    else{
+        log_i("Chip unique out_id: %" PRId64 "", unique_out_id);
+        // log_i("Chip unique read mode: %d size: %d id: %d", chip->read_mode, chip->size, chip->chip_id);
+    }
+
+    log_i("Flash mode: %02x ", ESP.getFlashChipMode());
+    log_i("CPU flash freq: %d MHz, xTal: %d MHz, APB: %d Hz", getCpuFrequencyMhz(), getXtalFrequencyMhz(), getXtalFrequencyMhz());
+
+}
+
 
 static const char *insightsTAG = "esp_insights";
 
@@ -151,7 +184,7 @@ void setup() {
     esp_log_level_set(insightsTAG, ESP_LOG_VERBOSE);
     // esp_log_level_set("esp_core_dump_elf", ESP_LOG_VERBOSE);
 
-
+    show_flash_info();
     show_firmware_description();
 
     Serial.printf("\n\nConnecting to %s", ssid);
