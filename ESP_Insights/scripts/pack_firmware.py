@@ -67,6 +67,18 @@ def get_bootloader_image(variants_dir):
         )
     )
 
+def get_bootloader_elf():
+    boot_mode = board_config.get("build.flash_mode", "$BOARD_FLASH_MODE").lower()
+    frequency = str(env.subst("$BOARD_F_FLASH")).replace("L", "")
+    return join(FRAMEWORK_DIR,
+                "tools",
+                "sdk",
+                build_mcu,
+                "bin",
+                # "bootloader_${__get_board_boot_mode(__env__)}_${__get_board_f_flash(__env__)}.bin",
+                "bootloader_" + boot_mode + "_" + str(int(int(frequency) / 1000000)) + "m" + ".elf",
+                )
+
 def chunks(
     fd: BinaryIO, length=None, *, chunk_size=io.DEFAULT_BUFFER_SIZE
 ) -> Iterator[bytes]:
@@ -117,19 +129,24 @@ def hash_image(img_path):
         return hash.hex()[:8]
         
 def copy_bootloader(env):
-    source = join(env.subst("$BUILD_DIR"), "patched_bootloader.bin")
+    source = join(env.subst("$BUILD_DIR"), "bootloader.bin")
     if not os.path.isfile(source):
-        logging.warning("\x1b[33;20mFile patched_bootloader.bin does not appear to exist.")
-        bootloader_image_path = get_bootloader_image(join(FRAMEWORK_DIR, "variants"))
-        source = bootloader_image_path
-        logging.warning("\x1b[33;20mIt will be taken bootloader from: %s" % (bootloader_image_path))
+        logging.warning("\x1b[33;20mFile bootloader.bin does not appear to exist.")
+        bootloader_bin_path = get_bootloader_image(join(FRAMEWORK_DIR, "variants"))
+        source = bootloader_bin_path
+        logging.warning("\x1b[33;20mIt will be taken bootloader from: %s" % (bootloader_bin_path))
 
     target_path = join(fw_out_folder, "bootloader")
     target_file = join(target_path, "bootloader.bin")
     if not exists(target_path):
         os.makedirs(target_path)
-    print("Copying bootloader from:", source)
+    print("Copying bootloader bin from:", source)
     shutil.copy(source, target_file)
+
+    bootloader_elf_path = get_bootloader_elf()
+    print("Copying bootloader elf from:", bootloader_elf_path)
+    shutil.copy(bootloader_elf_path, join(target_path, "bootloader.elf"))
+
 
 def copy_file_to_build_folder(filePath):
 
@@ -175,7 +192,7 @@ def SaveProject(source, target, env):
     create_build_folder()
 
     build_project_build_config(env)
-    # copy_bootloader(env)  # TODO: findout the way to provide bootloader binary using the newer arduino-esp32 version. NOw only elfs are present
+    copy_bootloader(env)
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".bin"))
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".elf"))
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".map"))
