@@ -128,13 +128,13 @@ def copy_bootloader(env):
     target_file = join(target_path, "bootloader.bin")
     if not exists(target_path):
         os.makedirs(target_path)
-    print("Copying bootloader: ", target_file)
+    print("Copying bootloader from:", source)
     shutil.copy(source, target_file)
 
 def copy_file_to_build_folder(filePath):
 
     target = join(fw_out_folder, os.path.basename(filePath))
-    print("Copying file: ", target)
+    print("Copying file: ", os.path.basename(target))
     shutil.copy(filePath, target)
 
 def copy_partition_table_bin(env):
@@ -143,19 +143,19 @@ def copy_partition_table_bin(env):
     target_file = join(target_path, "partition-table.bin")
     if not exists(target_path):
         os.makedirs(target_path)
-    print("Copying partition-table:", target_file)
+    print("Copying partition-table:", os.path.basename(target_file))
     shutil.copy(source, target_file)
 
 def copy_partition_table_csv(env):
     source = env.subst("$PARTITIONS_TABLE_CSV")
     target = join(fw_out_folder, "partitions.csv")
-    print("Copying partition-table CSV:", target)
+    print("Copying partition-table CSV:", os.path.basename(target))
     shutil.copy(source, target)
 
 def copy_sdkconfig(env):
     source = join(env.subst("$PROJECT_CORE_DIR"), "packages", "framework-arduinoespressif32", "tools", "sdk", "esp32", "sdkconfig")
     target = join(fw_out_folder, "sdkconfig")
-    print("Copying sdkconfig:", target)
+    print("Copying sdkconfig from:", source)
     shutil.copy(source, target)
 
 def SaveProject(source, target, env):
@@ -167,14 +167,15 @@ def SaveProject(source, target, env):
 
     elf_hash = hash_image(join(env.subst("$BUILD_DIR"), project_name + ".bin"))
     fw_out_name =  project_name + "-v" + appver + "-" + elf_hash
-    fw_out_folder = join(env.subst("$BUILD_DIR"), fw_out_name)
+    fw_out_folder_base = join(env.subst("$PROJECT_DIR"), ".pio", "firmware", env.subst("$PIOENV"))
+    fw_out_folder = join(fw_out_folder_base, fw_out_name)
     # date = env.GetProjectOption("custom_build_date", None)
-    print("Generating firmware package:", fw_out_name)
+    print("Generating firmware package: \x1b[33;92m%s.zip\x1b[33;0m " % (fw_out_name))  
 
     create_build_folder()
 
     build_project_build_config(env)
-    # copy_bootloader(env)  //TODO: findout the way to provide bootloader binary using the newer arduino-esp32 version. NOw only elfs are present
+    # copy_bootloader(env)  # TODO: findout the way to provide bootloader binary using the newer arduino-esp32 version. NOw only elfs are present
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".bin"))
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".elf"))
     copy_file_to_build_folder(join(env.subst("$BUILD_DIR"), project_name + ".map"))
@@ -183,11 +184,25 @@ def SaveProject(source, target, env):
     copy_sdkconfig(env)
 
     # env.Execute(f"tar -cvzf {fw_out_name}.zip {fw_out_folder}\ --format=zip")
-    print("\nGenerating firmware package file: ", fw_out_name, ".zip in location folder: ", env.subst("$BUILD_DIR"), "\n" )
-    file = shutil.make_archive(base_name=fw_out_folder,format='zip',root_dir=env.subst("$BUILD_DIR"),base_dir=fw_out_name)
+    print("Generated firmware package %s.zip located in folder: %s" % (fw_out_name, fw_out_folder_base))   
+    file = shutil.make_archive( base_name = fw_out_folder, 
+                                format = 'zip',
+                                root_dir = fw_out_folder_base,
+                                base_dir = fw_out_name)
+    
+    shutil.rmtree(fw_out_folder)
 
+
+def CleanPackages(source, target, env):
+    fw_out_folder_base = join(env.subst("$PROJECT_DIR"), ".pio", "firmware", env.subst("$PIOENV"))
+    shutil.rmtree(fw_out_folder_base)
+
+def CleanAllPackages(source, target, env):
+    fw_out_folder_base = join(env.subst("$PROJECT_DIR"), ".pio", "firmware")
+    shutil.rmtree(fw_out_folder_base)
 
 def pack_firmwware(env):
+
     pack_fw_action = env.AddCustomTarget(
         "pack-fw",
         # ['patchappinfos', 'elf-hash'],
@@ -202,6 +217,25 @@ def pack_firmwware(env):
     env.Depends(target="upload", dependency=pack_fw_action)
     env.Default(pack_fw_action)
 
+    pack_fw_action = env.AddCustomTarget(
+        "pack-fw-clean",
+        # ['patchappinfos', 'elf-hash'],
+        'patchappinfos',
+        CleanPackages,
+        title="Pack firmware Clean",
+        description="Pack firmware Clean",
+        always_build=False
+    )
+
+    pack_fw_action = env.AddCustomTarget(
+        "pack-fw-clean-all",
+        # ['patchappinfos', 'elf-hash'],
+        'patchappinfos',
+        CleanAllPackages,
+        title="Pack firmware Clean All",
+        description="Pack firmware Clean All",
+        always_build=False
+    )
 
 
 if __name__ == "SCons.Script":
