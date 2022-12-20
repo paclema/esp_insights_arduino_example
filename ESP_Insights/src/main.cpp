@@ -6,7 +6,7 @@ const char* ssid     = "wifiname";
 const char* password = "wifipass";
 
 #define ESP_INSIGHTS_AUTH_KEY "qwP4t1W1W6Sb6SeqwP4taKaZ1W6SbGciOiR58wZrunHaKaZEsAvqwP4t1W6SizNQ"
-#define METRICS_DUMP_INTERVAL           60 * 1000
+#define METRICS_DUMP_INTERVAL           10 * 1000
 #define METRICS_DUMP_INTERVAL_TICKS     (METRICS_DUMP_INTERVAL / portTICK_RATE_MS)
 static const char *TAG_INSIGHTS = "INSIGHTS";
 
@@ -29,7 +29,8 @@ void TaskEspInsights( void *pvParameters ){
     while (true) {
         esp_diag_heap_metrics_dump();
         esp_diag_wifi_metrics_dump();
-        vTaskDelay(METRICS_DUMP_INTERVAL_TICKS);
+        log_d("ESP-Insights heap and wifi metrics updated from xTask");
+        vTaskDelay(METRICS_DUMP_INTERVAL_TICKS*2);
     }
 }
 
@@ -64,14 +65,14 @@ void init_insights(void){
     esp_diag_variable_register("AccessCtrl", "lockStatus", "Lock status", "AccessCtrl.ControlDevice", ESP_DIAG_DATA_TYPE_STR);
 
 
-    // xTaskCreatePinnedToCore(
-    //     TaskEspInsights
-    //     ,  "EspInsights"
-    //     ,  1024  // Stack size
-    //     ,  NULL
-    //     ,  1  // Priority
-    //     ,  NULL 
-    //     ,  ARDUINO_RUNNING_CORE);
+    xTaskCreatePinnedToCore(
+        TaskEspInsights
+        ,  "EspInsights"
+        ,  1024*4  // Stack size
+        ,  NULL
+        ,  1  // Priority
+        ,  NULL 
+        ,  ARDUINO_RUNNING_CORE);
 
 }
 
@@ -115,15 +116,17 @@ void setup() {
     log_i("###  Looping time");
 }
 
+int count = 0;  // Variable for debugging purpose
 void loop() {
 
     currentLoopMillis = millis();
 
     if(insightsEnabled && insightsLoop && (currentLoopMillis-lastPublishedMetrics > METRICS_DUMP_INTERVAL)){
         lastPublishedMetrics = currentLoopMillis;
+        count++;
         esp_diag_heap_metrics_dump();
         esp_diag_wifi_metrics_dump();
-        log_d("ESP-Insights heap and wifi metrics updated");
+        log_d("ESP-Insights heap and wifi metrics updated from loop");
     }
 
     previousMainLoopMillis = currentLoopMillis;

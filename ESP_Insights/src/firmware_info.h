@@ -94,6 +94,6 @@ void show_flash_info(void){
     }
 
     log_i("Flash mode: %02x ", ESP.getFlashChipMode());
-    log_i("CPU flash freq: %d MHz, xTal: %d MHz, APB: %d Hz", getCpuFrequencyMhz(), getXtalFrequencyMhz(), getXtalFrequencyMhz());
+    log_i("CPU flash freq: %d MHz, xTal: %d MHz, APB: %d Hz, Flash: %d Hz", getCpuFrequencyMhz(), getXtalFrequencyMhz(), getApbFrequency(), ESP.getFlashChipSpeed());
 
 }
